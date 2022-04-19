@@ -1,8 +1,7 @@
 package com.example.demo.entities;
 
-import com.example.demo.dto.in.ShoeFilter.Color;
-import lombok.Builder;
 import lombok.Data;
+import org.hibernate.annotations.Cascade;
 
 import javax.persistence.*;
 import java.math.BigInteger;
@@ -10,7 +9,6 @@ import java.math.BigInteger;
 @Entity
 @Table(name = "STOCK_SHOES")
 @Data
-@Builder
 public class StockShoe {
 
   @Id
@@ -20,8 +18,22 @@ public class StockShoe {
   @Enumerated(EnumType.STRING)
   Color      color;
   BigInteger quantity;
+  @ManyToOne
+  @Cascade(value={org.hibernate.annotations.CascadeType.ALL})
+  @JoinColumn(name="STOCK_ID")
+  protected Stock stock;
 
-  public static class StockShoeEntityBuilder {
+  public StockShoe(BigInteger size, Color color, BigInteger quantity) {
+    this.size = size;
+    this.color = color;
+    this.quantity = quantity;
+  }
+
+  public enum Color{
+
+    BLACK,
+    BLUE,
+    ;
 
   }
 
