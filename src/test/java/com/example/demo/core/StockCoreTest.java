@@ -36,14 +36,14 @@ public class StockCoreTest {
     // GIVEN
     Stock stock = new Stock();
     stock.setShoes(List.of(new StockShoe(BigInteger.valueOf(41), StockShoe.Color.BLACK, BigInteger.valueOf(20), stock)));
-    Mockito.when(stockRepository.findAll()).thenReturn(List.of(stock));
+    Mockito.when(stockRepository.findByName("")).thenReturn(Optional.of(stock));
     StockCoreImpl stockCoreImpl = new StockCoreImpl(stockRepository);
 
     // WHEN
-    StockDto stock2 = stockCoreImpl.getAll();
+    StockDto stock2 = stockCoreImpl.getAll("");
 
     // THEN
-    Mockito.verify(stockRepository).findAll();
+    Mockito.verify(stockRepository).findByName("");
     Assertions.assertEquals(stock.getShoes().size(), stock2.getShoes().size());
     Assertions.assertEquals(StockDto.State.SOME, stock2.getState());
     StockShoeDto stockShoe = stock2.getShoes().iterator().next();
@@ -59,14 +59,14 @@ public class StockCoreTest {
     // GIVEN
     Stock stock = new Stock();
     stock.setShoes(List.of(new StockShoe(BigInteger.valueOf(41), StockShoe.Color.BLACK, BigInteger.valueOf(30), stock)));
-    Mockito.when(stockRepository.findAll()).thenReturn(List.of(stock));
+    Mockito.when(stockRepository.findByName("")).thenReturn(Optional.of(stock));
     StockCoreImpl stockCoreImpl = new StockCoreImpl(stockRepository);
 
     // WHEN
-    StockDto stock2 = stockCoreImpl.getAll();
+    StockDto stock2 = stockCoreImpl.getAll("");
 
     // THEN
-    Mockito.verify(stockRepository).findAll();
+    Mockito.verify(stockRepository).findByName("");
     Assertions.assertEquals(stock.getShoes().size(), stock2.getShoes().size());
     Assertions.assertEquals(StockDto.State.FULL, stock2.getState());
     StockShoeDto stockShoe = stock2.getShoes().iterator().next();
@@ -80,14 +80,14 @@ public class StockCoreTest {
   void retrieve_empty_stock() {
 
     // GIVEN
-    Mockito.when(stockRepository.findAll()).thenReturn(new ArrayList<>());
+    Mockito.when(stockRepository.findByName("")).thenReturn(Optional.empty());
     StockCoreImpl stockCoreImpl = new StockCoreImpl(stockRepository);
 
     // WHEN
-    StockDto stock2 = stockCoreImpl.getAll();
+    StockDto stock2 = stockCoreImpl.getAll("");
 
     // THEN
-    Mockito.verify(stockRepository).findAll();
+    Mockito.verify(stockRepository).findByName("");
     Assertions.assertEquals(0, stock2.getShoes().size());
     Assertions.assertEquals(StockDto.State.EMPTY, stock2.getState());
   }

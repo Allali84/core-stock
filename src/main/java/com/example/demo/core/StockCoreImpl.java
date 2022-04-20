@@ -21,16 +21,15 @@ public class StockCoreImpl extends AbstractStockCore {
   private final StockRepository stockRepository;
 
   @Override
-  public StockDto getAll() {
-    Iterable<Stock> stocks = stockRepository.findAll();
-    if (!stocks.iterator().hasNext()) {
+  public StockDto getAll(String name) {
+    Optional<Stock> existingStock = stockRepository.findByName(name);
+    if (existingStock.isEmpty()) {
       return StockDto.builder()
               .state(StockDto.State.EMPTY)
               .shoes(new ArrayList<>())
               .build();
     }
-    Stock stock = stocks.iterator().next();
-    List<StockShoe> shoesEntities = stock.getShoes();
+    List<StockShoe> shoesEntities = existingStock.get().getShoes();
     List<StockShoeDto> shoes = shoesEntities.stream()
             .map(it -> StockShoeDto.builder().size(it.getSize()).quantity(it.getQuantity()).color(it.getColor().toDto()).build())
             .collect(Collectors.toList());
