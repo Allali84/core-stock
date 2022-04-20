@@ -5,6 +5,7 @@ import com.example.demo.validator.MaxStockSize;
 import lombok.Data;
 
 import javax.persistence.*;
+import java.util.ArrayList;
 import java.util.List;
 
 @Entity
@@ -14,10 +15,15 @@ public class Stock {
 
   @Id
   @GeneratedValue(strategy = GenerationType.AUTO)
+  @Column(name = "STOCK_ID")
   long id;
-  @OneToMany(mappedBy = "stock")
+  @Column(unique=true)
+  String name;
+
+  @OneToMany(mappedBy = "stock",
+          cascade = CascadeType.ALL)
   @MaxStockSize(value = 30, message = "Shoes stock must not exceed 30")
-  List<StockShoe> shoes;
+  List<StockShoe> shoes = new ArrayList<>();
 
 
 }

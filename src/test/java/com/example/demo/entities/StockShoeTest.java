@@ -19,7 +19,7 @@ public class StockShoeTest {
     void max_capacity_exceeded_one_shoe() {
         // GIVEN
         Stock stock = new Stock();
-        stock.setShoes(List.of(new StockShoe(new StockShoeId(BigInteger.valueOf(41), StockShoeId.Color.BLACK), BigInteger.valueOf(50))));
+        stock.setShoes(List.of(new StockShoe(BigInteger.valueOf(41), StockShoe.Color.BLACK, BigInteger.valueOf(50), stock)));
 
         // WHEN
         ValidatorFactory factory = Validation.buildDefaultValidatorFactory();
@@ -37,8 +37,8 @@ public class StockShoeTest {
         // GIVEN
         Stock stock = new Stock();
         stock.setShoes(List.of(
-                new StockShoe(new StockShoeId(BigInteger.valueOf(41), StockShoeId.Color.BLACK), BigInteger.valueOf(20)),
-                new StockShoe(new StockShoeId(BigInteger.valueOf(42), StockShoeId.Color.BLACK), BigInteger.valueOf(15))
+                new StockShoe(BigInteger.valueOf(41), StockShoe.Color.BLACK, BigInteger.valueOf(20), stock),
+                new StockShoe(BigInteger.valueOf(42), StockShoe.Color.BLACK, BigInteger.valueOf(15), stock)
                 ));
 
         // WHEN
@@ -57,8 +57,8 @@ public class StockShoeTest {
         // GIVEN
         Stock stock = new Stock();
         stock.setShoes(List.of(
-                new StockShoe(new StockShoeId(BigInteger.valueOf(41), StockShoeId.Color.BLACK), BigInteger.valueOf(20)),
-                new StockShoe(new StockShoeId(BigInteger.valueOf(42), StockShoeId.Color.BLACK), BigInteger.valueOf(10))
+                new StockShoe(BigInteger.valueOf(41), StockShoe.Color.BLACK, BigInteger.valueOf(20), stock),
+                new StockShoe(BigInteger.valueOf(42), StockShoe.Color.BLACK, BigInteger.valueOf(10), stock)
         ));
 
         // WHEN

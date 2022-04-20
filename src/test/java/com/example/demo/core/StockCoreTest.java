@@ -5,11 +5,10 @@ import com.example.demo.dto.out.StockDto;
 import com.example.demo.dto.out.StockShoeDto;
 import com.example.demo.entities.Stock;
 import com.example.demo.entities.StockShoe;
-import com.example.demo.entities.StockShoeId;
 import com.example.demo.exceptions.CapacityExceededException;
 import com.example.demo.exceptions.FullStockException;
 import com.example.demo.exceptions.MinimumCapacityException;
-import com.example.demo.repositories.StockShoeRepository;
+import com.example.demo.repositories.StockRepository;
 import lombok.SneakyThrows;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.DisplayName;
@@ -20,9 +19,7 @@ import org.mockito.Mockito;
 import org.mockito.junit.jupiter.MockitoExtension;
 
 import java.math.BigInteger;
-import java.util.ArrayList;
-import java.util.Iterator;
-import java.util.List;
+import java.util.*;
 
 import static org.junit.jupiter.api.Assertions.assertThrows;
 
@@ -30,7 +27,7 @@ import static org.junit.jupiter.api.Assertions.assertThrows;
 public class StockCoreTest {
 
   @Mock
-  private StockShoeRepository stockShoeRepository;
+  private StockRepository stockRepository;
 
   @Test
   @DisplayName("Retrieve a stock with some state Test case")
@@ -38,15 +35,15 @@ public class StockCoreTest {
 
     // GIVEN
     Stock stock = new Stock();
-    stock.setShoes(List.of(new StockShoe(new StockShoeId(BigInteger.valueOf(41), StockShoeId.Color.BLACK), BigInteger.valueOf(20))));
-    Mockito.when(stockShoeRepository.findAll()).thenReturn(List.of(stock));
-    StockCoreImpl stockCoreImpl = new StockCoreImpl(stockShoeRepository);
+    stock.setShoes(List.of(new StockShoe(BigInteger.valueOf(41), StockShoe.Color.BLACK, BigInteger.valueOf(20), stock)));
+    Mockito.when(stockRepository.findAll()).thenReturn(List.of(stock));
+    StockCoreImpl stockCoreImpl = new StockCoreImpl(stockRepository);
 
     // WHEN
     StockDto stock2 = stockCoreImpl.getAll();
 
     // THEN
-    Mockito.verify(stockShoeRepository).findAll();
+    Mockito.verify(stockRepository).findAll();
     Assertions.assertEquals(stock.getShoes().size(), stock2.getShoes().size());
     Assertions.assertEquals(StockDto.State.SOME, stock2.getState());
     StockShoeDto stockShoe = stock2.getShoes().iterator().next();
@@ -61,15 +58,15 @@ public class StockCoreTest {
 
     // GIVEN
     Stock stock = new Stock();
-    stock.setShoes(List.of(new StockShoe(new StockShoeId(BigInteger.valueOf(41), StockShoeId.Color.BLACK), BigInteger.valueOf(30))));
-    Mockito.when(stockShoeRepository.findAll()).thenReturn(List.of(stock));
-    StockCoreImpl stockCoreImpl = new StockCoreImpl(stockShoeRepository);
+    stock.setShoes(List.of(new StockShoe(BigInteger.valueOf(41), StockShoe.Color.BLACK, BigInteger.valueOf(30), stock)));
+    Mockito.when(stockRepository.findAll()).thenReturn(List.of(stock));
+    StockCoreImpl stockCoreImpl = new StockCoreImpl(stockRepository);
 
     // WHEN
     StockDto stock2 = stockCoreImpl.getAll();
 
     // THEN
-    Mockito.verify(stockShoeRepository).findAll();
+    Mockito.verify(stockRepository).findAll();
     Assertions.assertEquals(stock.getShoes().size(), stock2.getShoes().size());
     Assertions.assertEquals(StockDto.State.FULL, stock2.getState());
     StockShoeDto stockShoe = stock2.getShoes().iterator().next();
@@ -83,14 +80,14 @@ public class StockCoreTest {
   void retrieve_empty_stock() {
 
     // GIVEN
-    Mockito.when(stockShoeRepository.findAll()).thenReturn(new ArrayList<>());
-    StockCoreImpl stockCoreImpl = new StockCoreImpl(stockShoeRepository);
+    Mockito.when(stockRepository.findAll()).thenReturn(new ArrayList<>());
+    StockCoreImpl stockCoreImpl = new StockCoreImpl(stockRepository);
 
     // WHEN
     StockDto stock2 = stockCoreImpl.getAll();
 
     // THEN
-    Mockito.verify(stockShoeRepository).findAll();
+    Mockito.verify(stockRepository).findAll();
     Assertions.assertEquals(0, stock2.getShoes().size());
     Assertions.assertEquals(StockDto.State.EMPTY, stock2.getState());
   }
@@ -101,14 +98,15 @@ public class StockCoreTest {
   void update_empty_stock() {
 
     // GIVEN
-    Mockito.when(stockShoeRepository.findAll()).thenReturn(new ArrayList<>());
+    Mockito.when(stockRepository.findByName("")).thenReturn(Optional.empty());
     Stock stock = new Stock();
-    stock.setShoes(List.of(new StockShoe(new StockShoeId(BigInteger.valueOf(41), StockShoeId.Color.BLACK), BigInteger.valueOf(20))));
-    Mockito.when(stockShoeRepository.save(stock)).thenReturn(stock);
-    StockCoreImpl stockCoreImpl = new StockCoreImpl(stockShoeRepository);
+    stock.setName("");
+    stock.setShoes(List.of(new StockShoe(BigInteger.valueOf(41), StockShoe.Color.BLACK, BigInteger.valueOf(20), stock)));
+    Mockito.when(stockRepository.save(stock)).thenReturn(stock);
+    StockCoreImpl stockCoreImpl = new StockCoreImpl(stockRepository);
 
     // WHEN
-    StockDto stock2 = stockCoreImpl.updateStock(
+    StockDto stock2 = stockCoreImpl.updateStock("",
             List.of(
                     StockShoeDto.builder()
                             .size(BigInteger.valueOf(41))
@@ -119,8 +117,8 @@ public class StockCoreTest {
     );
 
     // THEN
-    Mockito.verify(stockShoeRepository).findAll();
-    Mockito.verify(stockShoeRepository).save(stock);
+    Mockito.verify(stockRepository).findByName("");
+    Mockito.verify(stockRepository).save(stock);
     Assertions.assertEquals(1, stock2.getShoes().size());
     Assertions.assertEquals(StockDto.State.SOME, stock2.getState());
     StockShoeDto stockShoe = stock2.getShoes().iterator().next();
@@ -136,18 +134,16 @@ public class StockCoreTest {
 
     // GIVEN
     Stock stock = new Stock();
-    stock.setShoes(List.of(new StockShoe(new StockShoeId(BigInteger.valueOf(41), StockShoeId.Color.BLACK), BigInteger.valueOf(20))));
-    Mockito.when(stockShoeRepository.findAll()).thenReturn(List.of(stock));
+    stock.getShoes().add(new StockShoe(BigInteger.valueOf(41), StockShoe.Color.BLACK, BigInteger.valueOf(20), stock));
+    Mockito.when(stockRepository.findByName("")).thenReturn(Optional.of(stock));
     Stock stock3 = new Stock();
-    stock3.setShoes(List.of(
-            new StockShoe(new StockShoeId(BigInteger.valueOf(41), StockShoeId.Color.BLACK), BigInteger.valueOf(20)),
-            new StockShoe(new StockShoeId(BigInteger.valueOf(42), StockShoeId.Color.BLACK), BigInteger.valueOf(10))
-            ));
-    Mockito.when(stockShoeRepository.save(stock3)).thenReturn(stock3);
-    StockCoreImpl stockCoreImpl = new StockCoreImpl(stockShoeRepository);
+    stock3.getShoes().add(new StockShoe(BigInteger.valueOf(41), StockShoe.Color.BLACK, BigInteger.valueOf(20), stock3));
+    stock3.getShoes().add(new StockShoe(BigInteger.valueOf(42), StockShoe.Color.BLACK, BigInteger.valueOf(10), stock3));
+    Mockito.when(stockRepository.save(stock3)).thenReturn(stock3);
+    StockCoreImpl stockCoreImpl = new StockCoreImpl(stockRepository);
 
     // WHEN
-    StockDto stock2 = stockCoreImpl.updateStock(
+    StockDto stock2 = stockCoreImpl.updateStock("",
             List.of(
                     StockShoeDto.builder()
                             .size(BigInteger.valueOf(42))
@@ -158,8 +154,8 @@ public class StockCoreTest {
     );
 
     // THEN
-    Mockito.verify(stockShoeRepository).findAll();
-    Mockito.verify(stockShoeRepository).save(stock3);
+    Mockito.verify(stockRepository).findByName("");
+    Mockito.verify(stockRepository).save(stock3);
     Assertions.assertEquals(2, stock2.getShoes().size());
     Assertions.assertEquals(StockDto.State.FULL, stock2.getState());
     Iterator<StockShoeDto> iterator = stock2.getShoes().iterator();
@@ -180,17 +176,17 @@ public class StockCoreTest {
 
     // GIVEN
     Stock stock = new Stock();
-    stock.setShoes(List.of(new StockShoe(new StockShoeId(BigInteger.valueOf(41), StockShoeId.Color.BLACK), BigInteger.valueOf(20))));
-    Mockito.when(stockShoeRepository.findAll()).thenReturn(List.of(stock));
+    stock.getShoes().add(new StockShoe(BigInteger.valueOf(41), StockShoe.Color.BLACK, BigInteger.valueOf(20), stock));
+    Mockito.when(stockRepository.findByName("")).thenReturn(Optional.of(stock));
     Stock stock3 = new Stock();
     stock3.setShoes(List.of(
-            new StockShoe(new StockShoeId(BigInteger.valueOf(41), StockShoeId.Color.BLACK), BigInteger.valueOf(30))
+            new StockShoe(BigInteger.valueOf(41), StockShoe.Color.BLACK, BigInteger.valueOf(30), stock3)
     ));
-    Mockito.when(stockShoeRepository.save(stock3)).thenReturn(stock3);
-    StockCoreImpl stockCoreImpl = new StockCoreImpl(stockShoeRepository);
+    Mockito.when(stockRepository.save(stock3)).thenReturn(stock3);
+    StockCoreImpl stockCoreImpl = new StockCoreImpl(stockRepository);
 
     // WHEN
-    StockDto stock2 = stockCoreImpl.updateStock(
+    StockDto stock2 = stockCoreImpl.updateStock("",
             List.of(
                     StockShoeDto.builder()
                             .size(BigInteger.valueOf(41))
@@ -201,8 +197,8 @@ public class StockCoreTest {
     );
 
     // THEN
-    Mockito.verify(stockShoeRepository).findAll();
-    Mockito.verify(stockShoeRepository).save(stock3);
+    Mockito.verify(stockRepository).findByName("");
+    Mockito.verify(stockRepository).save(stock3);
     Assertions.assertEquals(1, stock2.getShoes().size());
     Assertions.assertEquals(StockDto.State.FULL, stock2.getState());
     Iterator<StockShoeDto> iterator = stock2.getShoes().iterator();
@@ -218,13 +214,13 @@ public class StockCoreTest {
 
     // GIVEN
     Stock stock = new Stock();
-    stock.setShoes(List.of(new StockShoe(new StockShoeId(BigInteger.valueOf(41), StockShoeId.Color.BLACK), BigInteger.valueOf(30))));
-    Mockito.when(stockShoeRepository.findAll()).thenReturn(List.of(stock));
-    StockCoreImpl stockCoreImpl = new StockCoreImpl(stockShoeRepository);
+    stock.setShoes(List.of(new StockShoe(BigInteger.valueOf(41), StockShoe.Color.BLACK, BigInteger.valueOf(30), stock)));
+    Mockito.when(stockRepository.findByName("")).thenReturn(Optional.of(stock));
+    StockCoreImpl stockCoreImpl = new StockCoreImpl(stockRepository);
 
     // WHEN & THEN
     assertThrows(FullStockException.class, () -> {
-      stockCoreImpl.updateStock(
+      stockCoreImpl.updateStock("",
               List.of(
                       StockShoeDto.builder()
                               .size(BigInteger.valueOf(42))
@@ -242,13 +238,13 @@ public class StockCoreTest {
 
     // GIVEN
     Stock stock = new Stock();
-    stock.setShoes(List.of(new StockShoe(new StockShoeId(BigInteger.valueOf(41), StockShoeId.Color.BLACK), BigInteger.valueOf(20))));
-    Mockito.when(stockShoeRepository.findAll()).thenReturn(List.of(stock));
-    StockCoreImpl stockCoreImpl = new StockCoreImpl(stockShoeRepository);
+    stock.setShoes(List.of(new StockShoe(BigInteger.valueOf(41), StockShoe.Color.BLACK, BigInteger.valueOf(20), stock)));
+    Mockito.when(stockRepository.findByName("")).thenReturn(Optional.of(stock));
+    StockCoreImpl stockCoreImpl = new StockCoreImpl(stockRepository);
 
     // WHEN & THEN
     assertThrows(CapacityExceededException.class, () -> {
-      stockCoreImpl.updateStock(
+      stockCoreImpl.updateStock("",
               List.of(
                       StockShoeDto.builder()
                               .size(BigInteger.valueOf(42))
@@ -265,12 +261,12 @@ public class StockCoreTest {
   void update_stock_capacity_under_zero() {
 
     // GIVEN
-    Mockito.when(stockShoeRepository.findAll()).thenReturn(new ArrayList<>());
-    StockCoreImpl stockCoreImpl = new StockCoreImpl(stockShoeRepository);
+    Mockito.when(stockRepository.findByName("")).thenReturn(Optional.empty());
+    StockCoreImpl stockCoreImpl = new StockCoreImpl(stockRepository);
 
     // WHEN & THEN
     assertThrows(MinimumCapacityException.class, () -> {
-      stockCoreImpl.updateStock(
+      stockCoreImpl.updateStock("",
               List.of(
                       StockShoeDto.builder()
                               .size(BigInteger.valueOf(42))

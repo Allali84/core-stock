@@ -1,9 +1,9 @@
 spring:
   datasource:
     driver-class-name: org.hsqldb.jdbc.JDBCDriver
-    url: jdbc:hsqldb:mem:testdb;DB_CLOSE_DELAY=-1
+    url: jdbc:hsqldb:file:testdb
     username: sa
     password:
   jpa:
     hibernate:
-      ddl-auto: create
+      ddl-auto: create-drop

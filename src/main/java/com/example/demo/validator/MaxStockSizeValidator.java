@@ -18,6 +18,10 @@ public class MaxStockSizeValidator implements ConstraintValidator<MaxStockSize, 
 
     @Override
     public boolean isValid(List<StockShoe> values, ConstraintValidatorContext constraintValidatorContext) {
-        return values.stream().map(StockShoe::getQuantity).reduce(BigInteger.ZERO, BigInteger::add).intValue() <= this.value;
+        if (values != null) {
+            return values.stream().map(StockShoe::getQuantity).reduce(BigInteger.ZERO, BigInteger::add).intValue() <= this.value;
+        } else {
+            return true;
+        }
     }
 }

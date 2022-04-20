@@ -4,37 +4,35 @@ import com.example.demo.dto.out.StockDto;
 import com.example.demo.dto.out.StockShoeDto;
 import com.example.demo.entities.Stock;
 import com.example.demo.entities.StockShoe;
-import com.example.demo.entities.StockShoeId;
 import com.example.demo.exceptions.CapacityExceededException;
 import com.example.demo.exceptions.FullStockException;
 import com.example.demo.exceptions.MinimumCapacityException;
-import com.example.demo.repositories.StockShoeRepository;
+import com.example.demo.repositories.StockRepository;
 import lombok.RequiredArgsConstructor;
 
 import java.math.BigInteger;
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Objects;
-import java.util.Optional;
+import java.util.*;
 import java.util.stream.Collectors;
 
 @Implementation(version = 2)
 @RequiredArgsConstructor
 public class StockCoreImpl extends AbstractStockCore {
 
-  private final StockShoeRepository stockShoeRepository;
+  private final StockRepository stockRepository;
 
   @Override
   public StockDto getAll() {
-    Iterable<Stock> stocks = stockShoeRepository.findAll();
+    Iterable<Stock> stocks = stockRepository.findAll();
     if (!stocks.iterator().hasNext()) {
       return StockDto.builder()
               .state(StockDto.State.EMPTY)
               .shoes(new ArrayList<>())
               .build();
     }
-   List<StockShoeDto> shoes = stocks.iterator().next().getShoes().stream()
-            .map(it -> StockShoeDto.builder().size(it.getId().getSize()).quantity(it.getQuantity()).color(it.getId().getColor().toDto()).build())
+    Stock stock = stocks.iterator().next();
+    List<StockShoe> shoesEntities = stock.getShoes();
+    List<StockShoeDto> shoes = shoesEntities.stream()
+            .map(it -> StockShoeDto.builder().size(it.getSize()).quantity(it.getQuantity()).color(it.getColor().toDto()).build())
             .collect(Collectors.toList());
 
     return StockDto.builder()
@@ -43,63 +41,69 @@ public class StockCoreImpl extends AbstractStockCore {
   }
 
   @Override
-  public StockDto updateStock(List<StockShoeDto> shoes) throws Exception {
-    StockDto existingStockDto = getAll();
-    List<StockShoeDto> existingShoes = existingStockDto.getShoes();
+  public StockDto updateStock(String name, List<StockShoeDto> shoes) throws Exception {
+    Optional<Stock> existingStock = stockRepository.findByName(name);
+    Stock stock = existingStock.orElseGet(Stock::new);
+    List<StockShoe> existingShoes = stock.getShoes();
 
-    int existingTotalQuantity = existingShoes.stream().map(StockShoeDto::getQuantity).reduce(BigInteger.ZERO, BigInteger::add).intValue();
+    int existingTotalQuantity = existingShoes.stream().map(StockShoe::getQuantity).reduce(BigInteger.ZERO, BigInteger::add).intValue();
     int totalQuantityToBeAdded = shoes.stream().map(StockShoeDto::getQuantity).reduce(BigInteger.ZERO, BigInteger::add).intValue();
-    checkStore(existingStockDto, existingTotalQuantity, totalQuantityToBeAdded);
+    checkStore(existingTotalQuantity, totalQuantityToBeAdded, shoes);
 
     // Check if we already have the shoe :
     // if yes -> accumulate the quantity
     // if not -> add the shoe as new one
     shoes.forEach(it -> {
-      Optional<StockShoeDto> shoeDtoOptional = existingShoes.stream().filter(it2 -> it.getColor() == it2.getColor() && Objects.equals(it.getSize(), it2.getSize())).findFirst();
-      StockShoeDto shoeDto;
+      Optional<StockShoe> shoeDtoOptional = existingShoes.stream().filter(it2 -> it.getColor() == it2.getColor().toDto() && Objects.equals(it.getSize(), it2.getSize())).findFirst();
+      StockShoe shoeDto;
       if (shoeDtoOptional.isPresent()) {
         shoeDto = shoeDtoOptional.get();
         existingShoes.remove(shoeDto);
-        existingShoes.add(StockShoeDto.builder().size(shoeDto.getSize()).color(shoeDto.getColor()).quantity(shoeDto.getQuantity().add(it.getQuantity())).build());
+        shoeDto.setQuantity(shoeDto.getQuantity().add(it.getQuantity()));
+        existingShoes.add(shoeDto);
       } else {
-        existingShoes.add(it);
+        existingShoes.add(new StockShoe(it.getSize(), it.getColor(), it.getQuantity(), stock));
       }
     });
 
-    // Map the dto to entity to be saved
-    List<StockShoe> entities = existingShoes.stream()
-            .map(it -> new StockShoe(new StockShoeId(it.getSize(), it.getColor()), it.getQuantity()))
-            .collect(Collectors.toList());
-    Stock stock = new Stock();
-    stock.setShoes(entities);
-    stockShoeRepository.save(stock);
+    // Save the entity
+    stock.setShoes(existingShoes);
+    if (existingStock.isEmpty()) {
+      stock.setName(name);
+    }
+    stockRepository.save(stock);
+
+    // Map the entity back to the dto
+    List<StockShoeDto> newShoes = existingShoes.stream().map(it ->
+            StockShoeDto.builder().size(it.getSize())
+                    .color(it.getColor().toDto())
+                    .quantity(it.getQuantity())
+                    .build()).collect(Collectors.toList());
 
     return StockDto.builder()
-            .shoes(existingShoes)
+            .shoes(newShoes)
             .build().calculateState();
   }
 
   /**
    * Check if there is a problem with the upcoming shoes list
    *
-   *
-   * @param existingStockDto what we already have in the stock
-   * @param existingTotalQuantity the total of the capacity of our current stock
+   * @param existingTotalQuantity  the total of the capacity of our current stock
    * @param totalQuantityToBeAdded the total of the capacity of the upcoming shoes list
-   * @throws FullStockException this exception is thrown when our store is already full
+   * @param shoes we need this list to check if there is one that has a negative value
+   * @throws FullStockException        this exception is thrown when our store is already full
    * @throws CapacityExceededException this exception is thrown if what we want to add will exceed the allowed capacity
-   * @throws MinimumCapacityException this exception is thrown if what we want to add has a negative value as quantity
-   *
+   * @throws MinimumCapacityException  this exception is thrown if what we want to add a negative value as quantity
    */
-  private void checkStore(StockDto existingStockDto, int existingTotalQuantity, int totalQuantityToBeAdded)
+  private void checkStore(int existingTotalQuantity, int totalQuantityToBeAdded, List<StockShoeDto> shoes)
           throws FullStockException, CapacityExceededException, MinimumCapacityException {
-    if (StockDto.State.FULL.equals(existingStockDto.getState())) {
+    if (existingTotalQuantity == 30) {
       throw new FullStockException();
     }
     if (existingTotalQuantity + totalQuantityToBeAdded > 30) {
       throw new CapacityExceededException(30 - existingTotalQuantity);
     }
-    if (totalQuantityToBeAdded < 0) {
+    if (shoes.stream().anyMatch(it -> it.getQuantity().intValue() < 0)) {
       throw new MinimumCapacityException();
     }
   }
