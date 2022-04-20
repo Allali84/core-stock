@@ -11,30 +11,17 @@ import java.math.BigInteger;
 @Data
 public class StockShoe {
 
-  @Id
-  @GeneratedValue(strategy = GenerationType.AUTO)
-  long id;
-  BigInteger size;
-  @Enumerated(EnumType.STRING)
-  Color      color;
+  @EmbeddedId
+  StockShoeId id;
   BigInteger quantity;
   @ManyToOne
   @Cascade(value={org.hibernate.annotations.CascadeType.ALL})
   @JoinColumn(name="STOCK_ID")
   protected Stock stock;
 
-  public StockShoe(BigInteger size, Color color, BigInteger quantity) {
-    this.size = size;
-    this.color = color;
+  public StockShoe(StockShoeId id, BigInteger quantity) {
+    this.id = id;
     this.quantity = quantity;
-  }
-
-  public enum Color{
-
-    BLACK,
-    BLUE,
-    ;
-
   }
 
 
