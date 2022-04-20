@@ -1,7 +1,7 @@
 package com.example.demo.exceptions;
 
-public class MinimumCapacityException extends Exception{
+public class MinimumCapacityException extends GeneralException{
     public MinimumCapacityException() {
-        super("Shoes quantity cannot be negative");
+        super("ERR-0003", "Shoes quantity cannot be negative");
     }
 }

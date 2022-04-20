@@ -6,6 +6,7 @@ import com.example.demo.entities.Stock;
 import com.example.demo.entities.StockShoe;
 import com.example.demo.exceptions.CapacityExceededException;
 import com.example.demo.exceptions.FullStockException;
+import com.example.demo.exceptions.GeneralException;
 import com.example.demo.exceptions.MinimumCapacityException;
 import com.example.demo.repositories.StockRepository;
 import lombok.RequiredArgsConstructor;
@@ -40,7 +41,7 @@ public class StockCoreImpl extends AbstractStockCore {
   }
 
   @Override
-  public StockDto updateStock(String name, List<StockShoeDto> shoes) throws Exception {
+  public StockDto updateStock(String name, List<StockShoeDto> shoes) throws GeneralException {
     Optional<Stock> existingStock = stockRepository.findByName(name);
     Stock stock = existingStock.orElseGet(Stock::new);
     List<StockShoe> existingShoes = stock.getShoes();

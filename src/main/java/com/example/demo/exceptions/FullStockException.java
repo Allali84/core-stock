@@ -1,7 +1,7 @@
 package com.example.demo.exceptions;
 
-public class FullStockException extends Exception {
+public class FullStockException extends GeneralException {
     public FullStockException() {
-        super("Stock is already full");
+        super("ERR-002", "Stock is already full");
     }
 }
